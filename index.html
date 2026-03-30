@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TTM Bible Quiz - Astra Classic</title>
+    <style>
+        :root { --purple: #9C27B0; --orange: #FF9100; --sky: #0288D1; --grass: #4CAF50; --gold: #FFD700; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: #e0f7fa; overflow-x: hidden; touch-action: manipulation; }
+
+        /* Astra Login Screen */
+        #astraOverlay { position: fixed; inset: 0; background: var(--purple); z-index: 5000; display: flex; align-items: center; justify-content: center; padding: 20px; text-align: center; color: white; }
+        .astra-card { background: rgba(255,255,255,0.15); padding: 40px; border-radius: 35px; backdrop-filter: blur(15px); border: 2px solid rgba(255,255,255,0.3); width: 100%; max-width: 380px; }
+        .astra-input { width: 100%; padding: 18px; border-radius: 20px; border: none; margin: 20px 0; font-size: 20px; text-align: center; font-weight: 900; color: var(--purple); }
+        .astra-btn { width: 100%; padding: 18px; background: var(--gold); color: #333; border: none; border-radius: 20px; font-weight: 900; font-size: 20px; cursor: pointer; box-shadow: 0 6px 0 #DAA520; }
+
+        /* Classic UI Elements */
+        .sky-bg { position: fixed; top: 0; width: 100%; height: 100vh; background: linear-gradient(to bottom, #4FC3F7, #E1F5FE); z-index: -1; }
+        .sun { position: fixed; top: 50px; right: 40px; font-size: 65px; z-index: -1; animation: rotateSun 25s linear infinite; }
+        @keyframes rotateSun { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+        .top-bar { position: fixed; top: 0; width: 100%; background: white; padding: 10px; z-index: 1000; border-bottom: 4px solid #ddd; display: flex; flex-direction: column; align-items: center; }
+        .user-stats { display: flex; justify-content: space-between; width: 100%; max-width: 400px; font-weight: 900; color: var(--purple); font-size: 14px; }
+        .rank-tag { background: var(--orange); color: white; padding: 2px 10px; border-radius: 50px; }
+
+        /* Roadmap Zig Zag */
+        .map-container { display: flex; flex-direction: column-reverse; align-items: center; padding: 130px 0 180px; position: relative; }
+        .path-line { position: absolute; width: 16px; background: rgba(255,255,255,0.5); height: 98%; border-radius: 20px; }
+        .lvl-node {
+            width: 85px; height: 85px; background: white; border-radius: 50%; border: 6px solid #FFD54F;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 22px; box-shadow: 0 10px 0 #FBC02D;
+            margin: 30px 0; cursor: pointer; z-index: 10; position: relative;
+        }
+        .lvl-node:nth-child(4n+1) { transform: translateX(-80px); }
+        .lvl-node:nth-child(4n+3) { transform: translateX(80px); }
+        .lvl-node.locked { background: #cfd8dc; border-color: #b0bec5; box-shadow: 0 10px 0 #90a4ae; opacity: 0.7; pointer-events: none; }
+        .lvl-node.done { background: #c8e6c9; border-color: #81c784; box-shadow: 0 10px 0 #4caf50; }
+
+        /* Quiz UI */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .quiz-card { background: white; width: 100%; max-width: 420px; border-radius: 40px; padding: 30px; text-align: center; border: 8px solid var(--purple); }
+        .q-text { font-size: 24px; font-weight: 900; margin: 20px 0; min-height: 80px; color: #333; }
+        .options-grid { display: grid; gap: 10px; }
+        .option-btn { padding: 15px; border-radius: 18px; border: 3px solid #eee; background: white; font-size: 18px; font-weight: 800; cursor: pointer; box-shadow: 0 5px 0 #ddd; }
+        .option-btn.correct { background: #a5d6a7 !important; border-color: #4caf50 !important; }
+        .option-btn.wrong { background: #ef9a9a !important; border-color: #f44336 !important; }
+        
+        .footer-grass { position: fixed; bottom: 0; width: 100%; height: 60px; background: var(--grass); border-top: 6px solid #388e3c; z-index: 100; display: flex; justify-content: space-around; align-items: center; font-size: 30px; }
+    </style>
+</head>
+<body>
+
+    <div id="astraOverlay">
+        <div class="astra-card">
+            <h1>ASTRA LOGIN</h1>
+            <input type="text" id="userName" class="astra-input" placeholder="ENTER ID">
+            <button class="astra-btn" onclick="startAstra()">START JOURNEY</button>
+        </div>
+    </div>
+
+    <div class="sky-bg"></div>
+    <div class="sun">☀️</div>
+
+    <div class="top-bar">
+        <div class="user-stats">
+            <div id="displayUser">ID: ---</div>
+            <div>RANK: <span id="displayRank" class="rank-tag">BEGINNER</span></div>
+        </div>
+        <div style="margin-top:5px; display:flex; gap:10px;">
+            <button class="astra-btn" style="padding:4px 12px; font-size:11px;" onclick="toggleLang()" id="langBtn">URDU</button>
+            <button class="astra-btn" style="padding:4px 12px; font-size:11px; background:red; color:white;" onclick="resetAll()">RESET</button>
+        </div>
+    </div>
+
+    <div id="roadmap" class="map-container"></div>
+    <div class="footer-grass"><span>🍀</span><span>🌻</span><span>🦋</span><span>🐞</span></div>
+
+    <div id="quizModal" class="modal">
+        <div class="quiz-card">
+            <div id="gameContent">
+                <div id="lvlInfo" style="font-size:12px; font-weight:900; color:var(--purple)">LEVEL</div>
+                <div id="qBox" class="q-text">Loading...</div>
+                <div id="optionsBox" class="options-grid"></div>
+            </div>
+            <div id="winScreen" style="display:none;">
+                <h1 style="font-size:70px;">🏆</h1>
+                <h2>LEVEL COMPLETE!</h2>
+                <button class="astra-btn" style="margin-top:20px" onclick="closeLevel()">NEXT LEVEL 🚀</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const JOBS = ["SEEKER", "STUDENT", "FOLLOWER", "SERVANT", "DISCIPLE", "SOLDIER", "MESSENGER", "APOSTLE", "STRIKER", "LEGEND"];
+        
+        // Data according to your request
+        const MASTER_DB = [
+            // 1-10: Creation (Dynamically mapped to levels)
+            { r: "Creation", qs: [
+                {e:"Who created the world?", u:"دنیا کس نے پیدا کی؟", ce:"God", cu:"خدا", we:"Moses", wu:"موسیٰ"},
+                {e:"How many days to create world?", u:"خدا نے دنیا کتنے دنوں میں بنائی؟", ce:"6", cu:"6", we:"7", wu:"7"},
+                {e:"What created on day 1?", u:"پہلے دن کیا پیدا ہوا؟", ce:"Light", cu:"نور", we:"Trees", wu:"درخت"},
+                {e:"Who were the first humans?", u:"پہلے انسان کون تھے؟", ce:"Adam & Eve", cu:"آدم اور حوا", we:"Peter & Mary", wu:"پطرس اور مریم"}
+            ]},
+            // 11-20: Noah
+            { r: "Noah", qs: [
+                {e:"Who built the ark?", u:"کشتی کس نے بنائی؟", ce:"Noah", cu:"نوح", we:"David", wu:"داؤد"},
+                {e:"Why God send flood?", u:"خدا نے سیلاب کیوں بھیجا؟", ce:"Sin", cu:"گناہ", we:"War", wu:"جنگ"},
+                {e:"Animals count in ark?", u:"کشتی میں کتنے جانور گئے؟", ce:"2 of each", cu:"ہر قسم کے 2", we:"5", wu:"5"},
+                {e:"How long it rain?", u:"بارش کتنے دن رہی؟", ce:"40 days", cu:"40 دن", we:"10 days", wu:"10 دن"}
+            ]},
+            // 21-30: Moses
+            { r: "Moses", qs: [
+                {e:"Who saved baby Moses?", u:"موسیٰ کو کس نے بچایا؟", ce:"Pharaoh's daughter", cu:"فرعون کی بیٹی", we:"Mary", wu:"مریم"},
+                {e:"Where was baby placed?", u:"بچے کو کہاں رکھا گیا؟", ce:"Basket in river", cu:"ٹوکری میں", we:"Cave", wu:"غار"},
+                {e:"Spoke from burning bush?", u:"جھاڑی سے کون بولا؟", ce:"God", cu:"خدا", we:"Angel", wu:"فرشتہ"},
+                {e:"Sea Moses parted?", u:"موسیٰ نے کون سا سمندر چیرا؟", ce:"Red Sea", cu:"بحیرہ قلزم", we:"Dead Sea", wu:"بحیرہ مردار"}
+            ]},
+            // 31-40: David
+            { r: "David", qs: [
+                {e:"David was King and?", u:"داؤد بادشاہ اور کیا تھے؟", ce:"Shepherd", cu:"چرواہے", we:"Priest", wu:"کاہن"},
+                {e:"Who David defeat?", u:"داؤد نے کسے ہرایا؟", ce:"Goliath", cu:"جالوت", we:"Saul", wu:"ساؤل"},
+                {e:"Weapon David used?", u:"داؤد نے کیا ہتھیار استعمال کیا؟", ce:"Sling", cu:"فلاخن", we:"Sword", wu:"تلوار"},
+                {e:"First King of Israel?", u:"اسرائیل کا پہلا بادشاہ؟", ce:"Saul", cu:"ساؤل", we:"Solomon", wu:"سلیمان"}
+            ]},
+            // 41-50: Jesus Birth
+            { r: "Jesus Birth", qs: [
+                {e:"Mother of Jesus?", u:"یسوع کی ماں کون ہے؟", ce:"Mary", cu:"مریم", we:"Ruth", wu:"روت"},
+                {e:"Jesus born in?", u:"یسوع کہاں پیدا ہوئے؟", ce:"Bethlehem", cu:"بیت لحم", we:"Nazareth", wu:"ناصرہ"},
+                {e:"Laid in a?", u:"یسوع کو کہاں لٹایا گیا؟", ce:"Manger", cu:"چرنی", we:"Bed", wu:"بستر"},
+                {e:"Who visited baby Jesus?", u:"یسوع سے ملنے کون آیا؟", ce:"Shepherds/Kings", cu:"چرواہے اور بادشاہ", we:"None", wu:"کوئی نہیں"}
+            ]},
+            // 51-60: Ministry
+            { r: "Ministry", qs: [
+                {e:"Who baptized Jesus?", u:"یسوع کو بپتسمہ کس نے دیا؟", ce:"John", cu:"یوحنا", we:"Peter", wu:"پطرس"},
+                {e:"Water turned into?", u:"پانی کس میں بدلا گیا؟", ce:"Wine", cu:"مے", we:"Milk", wu:"دودھ"},
+                {e:"How many disciples?", u:"کتنے شاگرد تھے؟", ce:"12", cu:"12", we:"10", wu:"10"},
+                {e:"Walked on?", u:"یسوع کس پر چلے؟", ce:"Water", cu:"پانی", we:"Fire", wu:"آگ"}
+            ]},
+            // 61-70: Resurrection
+            { r: "Crucifixion", qs: [
+                {e:"Where crucified?", u:"مصلوب کہاں ہوئے؟", ce:"Golgotha", cu:"گلگتا", we:"Sinai", wu:"سینا"},
+                {e:"Day Jesus rose?", u:"یسوع کس دن جی اٹھے؟", ce:"3rd day", cu:"تیسرے دن", we:"5th day", wu:"پانچویں دن"},
+                {e:"Found empty tomb?", u:"خالی قبر کس نے دیکھی؟", ce:"Mary Magdalene", cu:"مریم مگدلینی", we:"John", wu:"یوحنا"},
+                {e:"Rolled away?", u:"قبر سے کیا ہٹایا گیا؟", ce:"Stone", cu:"پتھر", we:"Door", wu:"دروازہ"}
+            ]},
+            // 71-100: General Knowledge
+            { r: "General", qs: [
+                {e:"First book?", u:"پہلی کتاب؟", ce:"Genesis", cu:"پیدائش", we:"Exodus", wu:"خروج"},
+                {e:"Last book?", u:"آخری کتاب؟", ce:"Revelation", cu:"مکاشفہ", we:"Acts", wu:"اعمال"},
+                {e:"Strongest man?", u:"سب سے طاقتور انسان؟", ce:"Samson", cu:"شمشون", we:"David", wu:"داؤد"},
+                {e:"Swallowed by fish?", u:"مچھلی نے کسے نگلا؟", ce:"Jonah", cu:"یوناہ", we:"Noah", wu:"نوح"}
+            ]}
+        ];
+
+        // Fill remaining database to reach 100 levels
+        while(MASTER_DB.length < 100) {
+            MASTER_DB.push({r: "Bible Knowledge", qs: MASTER_DB[MASTER_DB.length % 8].qs});
+        }
+
+        let userData = JSON.parse(localStorage.getItem('astra_ttm_v4')) || null;
+        let lang = 'en';
+        let currentLvlIdx = 0;
+        let currentQIdx = 0;
+
+        function startAstra() {
+            const name = document.getElementById('userName').value.trim();
+            if(!name) return alert("Please enter ID!");
+            userData = { name: name.toUpperCase(), lvl: 1, rankIdx: 0 };
+            save();
+            init();
+        }
+
+        function init() {
+            if(!userData) return;
+            document.getElementById('astraOverlay').style.display = 'none';
+            document.getElementById('displayUser').innerText = `ID: ${userData.name}`;
+            updateStats();
+            renderRoadmap();
+        }
+
+        function updateStats() {
+            userData.rankIdx = Math.min(Math.floor((userData.lvl - 1) / 10), JOBS.length - 1);
+            document.getElementById('displayRank').innerText = JOBS[userData.rankIdx];
+            save();
+        }
+
+        function renderRoadmap() {
+            const container = document.getElementById('roadmap');
+            container.innerHTML = '<div class="path-line"></div>';
+            for(let i=1; i<=100; i++) {
+                const btn = document.createElement('div');
+                let status = i < userData.lvl ? 'done' : (i === userData.lvl ? 'active' : 'locked');
+                btn.className = `lvl-node ${status}`;
+                btn.innerHTML = `<span>LVL</span>${i}`;
+                btn.onclick = () => { if(i <= userData.lvl) startQuiz(i-1); };
+                container.appendChild(btn);
+            }
+        }
+
+        function startQuiz(idx) {
+            currentLvlIdx = idx;
+            currentQIdx = 0;
+            document.getElementById('quizModal').style.display = 'flex';
+            document.getElementById('gameContent').style.display = 'block';
+            document.getElementById('winScreen').style.display = 'none';
+            loadQ();
+        }
+
+        function loadQ() {
+            const data = MASTER_DB[currentLvlIdx];
+            const q = data.qs[currentQIdx];
+            document.getElementById('lvlInfo').innerText = `${data.r} - Level ${currentLvlIdx+1} (${currentQIdx+1}/4)`;
+            const qBox = document.getElementById('qBox');
+            qBox.innerText = lang === 'ur' ? q.u : q.e;
+            
+            const optBox = document.getElementById('optionsBox');
+            optBox.innerHTML = '';
+            const options = [{t: lang==='ur'?q.cu:q.ce, c:true}, {t: lang==='ur'?q.wu:q.we, c:false}].sort(()=>Math.random()-0.5);
+
+            options.forEach(o => {
+                const b = document.createElement('div');
+                b.className = 'option-btn';
+                b.innerText = o.t;
+                b.onclick = () => {
+                    if(o.c) {
+                        b.classList.add('correct');
+                        speak(lang==='ur'?"درست":"Correct");
+                        setTimeout(() => {
+                            currentQIdx++;
+                            if(currentQIdx < 4) loadQ();
+                            else {
+                                document.getElementById('gameContent').style.display = 'none';
+                                document.getElementById('winScreen').style.display = 'block';
+                                speak(lang==='ur'?"لیول مکمل":"Level Complete");
+                            }
+                        }, 600);
+                    } else {
+                        b.classList.add('wrong');
+                        speak(lang==='ur'?"غلط":"Wrong");
+                        setTimeout(() => b.classList.remove('wrong'), 600);
+                    }
+                };
+                optBox.appendChild(b);
+            });
+            speak(qBox.innerText);
+        }
+
+        function closeLevel() {
+            if(currentLvlIdx + 1 === userData.lvl) {
+                userData.lvl++;
+                if(userData.lvl > 100) {
+                    alert("ULTIMATE LEGEND! System Restarting...");
+                    resetAll();
+                    return;
+                }
+            }
+            document.getElementById('quizModal').style.display = 'none';
+            updateStats();
+            renderRoadmap();
+        }
+
+        function toggleLang() {
+            lang = lang === 'en' ? 'ur' : 'en';
+            document.getElementById('langBtn').innerText = lang === 'en' ? 'URDU' : 'ENGLISH';
+            if(document.getElementById('quizModal').style.display === 'flex') loadQ();
+        }
+
+        function speak(t) {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(t);
+            u.lang = lang === 'ur' ? 'ur-PK' : 'en-US';
+            window.speechSynthesis.speak(u);
+        }
+
+        function save() { localStorage.setItem('astra_ttm_v4', JSON.stringify(userData)); }
+        function resetAll() { localStorage.clear(); location.reload(); }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
